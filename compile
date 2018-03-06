@@ -1,0 +1,6 @@
+#!/bin/bash
+
+gcc -std=c99 -o welch1938 welch1938.c -lgsl -lgslcblas -lm
+
+R CMD SHLIB welch1938.c -lgsl -lgslcblas
+

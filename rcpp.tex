@@ -1,0 +1,230 @@
+\documentclass[10pt, compress]{beamer}
+\usetheme{metropolis}
+\setsansfont{Avenir Light}
+\setmainfont{Avenir Light}
+
+\usepackage{booktabs}
+\usepackage[scale=2]{ccicons}
+\usepackage{dsfont}
+\usepackage{fancyvrb}
+\usepackage{caption}
+\usepackage{hyperref}
+\captionsetup[figure]{labelformat=empty}
+\captionsetup{skip=0pt, belowskip=0pt}
+
+
+
+\title{Rcpp}
+\date{\today}
+\author{Jacob Mortensen}
+\institute{Simon Fraser University}
+
+\begin{document}
+  \maketitle
+  
+  \section{Introduction}
+  \begin{frame}
+    \frametitle{Introduction}
+    Computation is a frequent bottleneck in statistics research
+    \begin{itemize}
+      \item R is often too slow
+      \item C can become very complex, and can be very intimidating if you haven't dealt with it before
+    \end{itemize}
+    Enter Rcpp!
+  \end{frame}
+
+  \begin{frame}
+    \frametitle{c++ vs. R}
+    \begin{minipage}{0.45\textwidth}
+      \centering
+      R
+      \newline
+      \hrule
+      \begin{enumerate}
+        \item Weakly typed
+        \item Interpreted
+        \item 1-indexed 
+      \end{enumerate}
+    \end{minipage}
+    \hfill
+    \vrule
+    \hfill
+    \begin{minipage}{0.45\textwidth}
+      \centering
+      c++
+      \newline
+      \hrule
+      \begin{enumerate}
+        \item Strongly typed
+        \item Compiled
+        \item 0-indexed
+      \end{enumerate}
+    \end{minipage}
+  \end{frame}
+
+  \section{Advantages of Rcpp}
+  \begin{frame}
+  \frametitle{Advantages of Rcpp}
+  Advantages of Rcpp:
+  \begin{itemize}
+    \item Speed comparable to pure C
+    \item Much easier to use
+    \begin{itemize}
+      \item Memory management and data structures
+      \item Syntactic ``sugar''
+      \item Can use inline code or an external file
+    \end{itemize}
+  \end{itemize}
+  \end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Memory management and data structures}
+    R:
+    \begin{Verbatim}[fontsize=\footnotesize]
+output <- matrix(0, nrow = sigma2length*mu2length, ncol = 5)
+    \end{Verbatim}
+    C:
+    \begin{Verbatim}[fontsize=\footnotesize]
+double* output = (double*) malloc(5*mu2len*sigma2len*sizeof(double));
+    \end{Verbatim}
+    Rcpp:
+    \begin{Verbatim}[fontsize=\footnotesize]
+NumericMatrix output(sigma2length*mu2length, 5);
+    \end{Verbatim}
+
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Memory management and data structures}
+  Data structures available through Rcpp:
+  \begin{itemize}
+    \item NumericVector
+    \item IntegerVector
+    \item CharacterVector
+    \item LogicalVector
+  \end{itemize}
+  Equivalent data structures exist for R matrices.
+  All of these data structures are pointers, and so nothing is copied unless needed.
+  Memory is allocated and freed automatically.
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Memory management and data structures}
+Initialize vector:
+\begin{verbatim}
+NumericVector x(10);
+NumericVector x = NumericVector::create(1,2,3,4,5);
+\end{verbatim}
+Initialize matrix:
+\begin{verbatim}
+NumericMatrix x(10, 10);
+\end{verbatim}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Memory management and data structures}
+Access and set vector elements:
+\begin{Verbatim}[fontsize=\small]
+x[0];
+x[1] = 4.2;
+\end{Verbatim}
+Access and set matrix elements:
+\begin{Verbatim}[fontsize=\small]
+x(0,0); 
+x(0,1) = 42;
+x(0, _); // returns first row of matrix as a NumericVector
+\end{Verbatim}
+\textbf{Note that these data structures are all indexed by zero!}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Syntactic sugar}
+Many functions from R have been vectorised and implemented in c++
+\begin{Verbatim}[fontsize=\small]
+NumericVector euclid_dist(double x, NumericVector ys) {
+  return sqrt(pow((x - ys), 2));
+}
+\end{Verbatim}
+\end{frame}
+\begin{frame}[fragile]
+\frametitle{Syntactic sugar}
+R functions implemented in Rcpp:
+\begin{itemize}
+  \item Arithmetic and logical operators: *, +, -, /, pow, <, <=, >, >=, ==, !=, !. 
+  \item Math functions: abs(), beta(), exp(), gamma(), \dots
+  \item Summary functions: mean(), min(), max(), sum(), sd() and var()
+  \item d/p/q/r for all standard distributions in R
+\end{itemize}
+\end{frame}
+  
+\plain{Code examples}
+
+\section{Rcpp Armadillo}
+\begin{frame}
+  \frametitle{Rcpp Armadillo}
+  RcppArmadillo is a linear algebra library, so anytime you need to 
+  \begin{itemize}
+    \item invert a matrix
+    \item perform matrix algebra
+    \item decompose a matrix
+  \end{itemize}
+  this is where you should look.
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Rcpp Armadillo Data Structures}
+Use \texttt{arma::colvec} and \texttt{arma::mat} in place of \texttt{NumericVector} and \texttt{NumericMatrix}. 
+
+Can convert between the two by using:
+\begin{Verbatim}[fontsize=\small]
+NumericVector x = wrap(y);
+arma::colvec y = as<arma::colvec>(x);
+\end{Verbatim}
+and
+\begin{Verbatim}[fontsize=\small]
+NumericMatrix x = wrap(y);
+arma::mat y = as<arma::mat>(x);
+\end{Verbatim}
+
+\end{frame}
+
+\begin{frame}
+  \frametitle{Rcpp Armadillo Functions}
+  If you need to do any kind of linear algebra operation, it is probably available, and the \textbf{\href{http://arma.sourceforge.net/docs.html}{documentation is really good}}
+\end{frame}
+
+\plain{Code examples}
+
+\section{Misc}
+\begin{frame}[fragile]
+  \frametitle{Using Other C++ Libraries}
+  \begin{Verbatim}
+// [[Rcpp::depends(RcppGSL)]]
+
+#include <RcppGSL.h>
+#include <gsl/gsl_rng.h>
+#include <gsl/gsl_randist.h>
+  \end{Verbatim}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Calling R Functions in Rcpp}
+\begin{Verbatim}[fontsize=\small]
+RObject callWithOne(Function f) {
+  return f(1);
+}
+> callWithOne(function(x) x + 1)
+# [1] 2
+\end{Verbatim}
+
+\end{frame}
+
+\begin{frame}
+  \frametitle{Resources}
+  \begin{itemize}
+    \item \href{http://adv-r.had.co.nz/Rcpp.html}{Hadley Wickham's Advanced R Site}
+    \item \href{http://www.rcpp.org/}{Official Rcpp Website}
+    \item \href{http://arma.sourceforge.net/docs.html}{Armadillo Documentation}
+  \end{itemize}
+\end{frame}
+\end{document}
